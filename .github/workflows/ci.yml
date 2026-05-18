@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Deploy
 
 on:
   push:
@@ -6,17 +6,33 @@ on:
       - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Run test
         run: node backend/test.js
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~
+            if [ ! -d "smart-commerce-platform-2" ]; then
+              git clone https://github.com/qtmvlnarayana-ch/smart-commerce-platform-2.git
+            fi
+            cd smart-commerce-platform-2
+            git pull origin main
+            npm install
+            node backend/app.js
